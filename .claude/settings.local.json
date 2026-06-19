@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($r = Invoke-RestMethod -Uri \"http://localhost:3000/api/sessions/1\" -Method DELETE; \"Deleted: $\\($r.deleted_id\\)\")"
+    ]
+  }
+}

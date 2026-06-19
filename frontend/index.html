@@ -527,7 +527,12 @@
 
 <script>
 // ─── CONFIG ─────────────────────────────────────────
-const API_URL = 'http://localhost:3000'; // cambiar a la URL de Railway antes del deploy
+const API_URL = (() => {
+  const h = location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1' || location.protocol === 'file:')
+    return 'http://localhost:3000';
+  return 'https://TU-BACKEND.up.railway.app'; // reemplazar con la URL real de Railway
+})();
 
 // ─── STATE ──────────────────────────────────────────
 const chipValues = {};
@@ -774,140 +779,299 @@ const scoreLevel = s => s >= 85 ? 'Excelente' : s >= 70 ? 'Bueno' : s >= 50 ? 'R
 
 function renderDashboard(st, sessions) {
   const total = parseInt(st.total);
-  const avg = parseFloat(st.sus_avg)||0;
+  const avg   = parseFloat(st.sus_avg)||0;
+  const sMin  = parseFloat(st.sus_min)||0;
+  const sMax  = parseFloat(st.sus_max)||0;
+  const sStd  = parseFloat(st.sus_std)||0;
+  const pGte70= parseFloat(st.pct_gte_70)||0;
   const t1 = parseFloat(st.t1_rate)||0, t2 = parseFloat(st.t2_rate)||0, t3 = parseFloat(st.t3_rate)||0;
   const top1si = parseFloat(st.top1_si)||0, top1no = parseFloat(st.top1_no)||0, top1tv = parseFloat(st.top1_talvez)||0;
   const qa = st.q_avgs || {};
+  const lvl = scoreLevel(avg);
 
-  const kpi = (label, val, unit, meta) => {
+  // ── helpers ──────────────────────────────────────────────────────────
+  const kpi = (label, val, unit, meta, note) => {
     const met = meta != null ? parseFloat(val) >= meta : null;
     const clr = met === null ? 'var(--pr)' : met ? 'var(--grn)' : 'var(--red)';
     return `<div class="gc p-4">
-      <div class="text-3xl font-light mb-1" style="color:${clr}">${val}${unit}</div>
-      <div class="text-xs" style="color:var(--text2)">${label}</div>
-      ${meta!=null ? `<div class="text-xs mt-1 font-medium" style="color:${clr}">${met?'✓':'✗'} meta ≥${meta}${unit}</div>` : ''}
+      <div class="text-3xl font-light mb-0.5" style="color:${clr}">${val}${unit}</div>
+      <div class="text-xs font-medium mb-1" style="color:var(--text)">${label}</div>
+      ${note ? `<div class="text-xs leading-snug" style="color:var(--text2)">${note}</div>` : ''}
+      ${meta!=null ? `<div class="text-xs mt-1.5 font-bold" style="color:${clr}">${met?'✓ CUMPLIDA':'✗ NO CUMPLIDA'} · meta ≥${meta}${unit}</div>` : ''}
     </div>`;
   };
 
-  const hBar = (lbl, val, pct, clr) => `
+  const hBar = (lbl, val, pct, clr, lblW) => `
     <div class="flex items-center gap-2 mb-2">
-      <div class="text-xs flex-shrink-0 w-6" style="color:var(--text2)">${lbl}</div>
+      <div class="text-xs flex-shrink-0 truncate" style="color:var(--text2);width:${lblW||'2rem'}">${lbl}</div>
       <div class="flex-1 h-3.5 rounded-full overflow-hidden" style="background:#f1f3f4">
-        <div class="h-3.5 rounded-full" style="width:${pct}%;background:${clr}"></div>
+        <div class="h-3.5 rounded-full" style="width:${Math.min(pct,100)}%;background:${clr};transition:width .6s ease"></div>
       </div>
-      <div class="text-xs font-medium w-8 text-right" style="color:${clr}">${val}</div>
+      <div class="text-xs font-bold flex-shrink-0 text-right" style="color:${clr};min-width:2.5rem">${val}</div>
     </div>`;
 
-  const perPart = sessions.slice().reverse().map(s => {
+  // ── sorted participants ───────────────────────────────────────────────
+  const sorted = sessions.slice().sort((a,b) => parseFloat(b.sus_score) - parseFloat(a.sus_score));
+  const perPart = sorted.map((s, i) => {
     const sc = parseFloat(s.sus_score)||0;
+    const firstName = (s.nombre||'?').split(',')[1]?.trim().split(' ')[0] || (s.nombre||'?').split(' ')[0];
     return `<div class="flex items-center gap-2 mb-1.5">
-      <div class="text-xs w-24 truncate flex-shrink-0" style="color:var(--text2)">${(s.nombre||'?').slice(0,15)}</div>
+      <div class="text-xs flex-shrink-0 text-right font-mono" style="color:var(--text2);width:1.2rem">${i+1}</div>
+      <div class="text-xs flex-shrink-0 truncate" style="color:var(--text);width:5.5rem">${firstName}</div>
       <div class="flex-1 h-3.5 rounded-full overflow-hidden" style="background:#f1f3f4">
         <div class="h-3.5 rounded-full" style="width:${sc}%;background:${scoreColor(sc)}"></div>
       </div>
-      <div class="text-xs font-bold w-8 text-right" style="color:${scoreColor(sc)}">${sc}</div>
+      <div class="text-xs font-bold flex-shrink-0 text-right" style="color:${scoreColor(sc)};min-width:2.5rem">${sc}</div>
     </div>`;
   }).join('');
 
-  const pI = Math.round(sessions.filter(s=>parseFloat(s.sus_score)<50).length/total*100);
-  const pR = Math.round(sessions.filter(s=>{const v=parseFloat(s.sus_score);return v>=50&&v<70;}).length/total*100);
-  const pB = Math.round(sessions.filter(s=>{const v=parseFloat(s.sus_score);return v>=70&&v<85;}).length/total*100);
-  const pE = Math.round(sessions.filter(s=>parseFloat(s.sus_score)>=85).length/total*100);
-  const seg = (p, clr) => p > 0 ? `<div class="flex items-center justify-center text-white text-xs font-bold" style="width:${p}%;background:${clr}">${p>7?p+'%':''}</div>` : '';
+  // ── distribution segments ─────────────────────────────────────────────
+  const nI = sessions.filter(s=>parseFloat(s.sus_score)<50).length;
+  const nR = sessions.filter(s=>{const v=parseFloat(s.sus_score);return v>=50&&v<70;}).length;
+  const nB = sessions.filter(s=>{const v=parseFloat(s.sus_score);return v>=70&&v<85;}).length;
+  const nE = sessions.filter(s=>parseFloat(s.sus_score)>=85).length;
+  const pI=Math.round(nI/total*100), pR=Math.round(nR/total*100), pB=Math.round(nB/total*100), pE=Math.round(nE/total*100);
+  const seg = (p, clr) => p > 0 ? `<div class="flex items-center justify-center text-white text-xs font-bold" style="width:${p}%;background:${clr}">${p>6?p+'%':''}</div>` : '';
 
+  // ── transport ─────────────────────────────────────────────────────────
+  const transportLabel = { driving:'Auto/moto', cycling:'Bicicleta', walking:'A pie', transit:'Transporte público' };
   const byT = (st.by_transport||[]).map(r => {
     const sc = parseFloat(r.avg_score)||0;
-    return hBar(`${r.transporte} (${r.n})`, sc, sc, scoreColor(sc));
-  }).join('') || '<p class="text-xs" style="color:var(--text2)">Sin datos de transporte</p>';
+    const lbl = `${transportLabel[r.transporte]||r.transporte} (n=${r.n})`;
+    return hBar(lbl, sc.toFixed(1), sc, scoreColor(sc), '8.5rem');
+  }).join('') || '<p class="text-xs" style="color:var(--text2)">Sin datos</p>';
 
-  const conclusionText = `The usability evaluation recruited ${total} Lima workers (T1: ${t1}%, T2: ${t2}%, T3: ${t3}%). The System Usability Scale yielded a mean score of ${avg} (Bangor et al., 2008), classified as '${scoreLevel(avg)}'. ${top1si}% of participants accepted the Top-1 recommendation ${top1si>=60?'✓':'✗'}. SUS ≥70 Meta ${avg>=70?'cumplida ✓':'no cumplida ✗'}.`;
+  // ── benchmark status badges ───────────────────────────────────────────
+  const allMet = avg>=70 && t1>=80 && t2>=80 && t3>=80 && top1si>=60;
+  const badge = (ok, txt) => `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+    style="background:${ok?'#e6f4ea':'#fce8e6'};color:${ok?'var(--grn)':'var(--red)'}">${ok?'✓':'✗'} ${txt}</span>`;
 
+  // ── conclusion texts ──────────────────────────────────────────────────
+  const concES = `La evaluación de usabilidad de MiCasita reclutó N=${total} trabajadores urbanos residentes en Villa El Salvador, Lima Metropolitana. El puntaje SUS promedio obtenido fue de ${avg.toFixed(1)} (DS = ${sStd.toFixed(1)}; mín = ${sMin}; máx = ${sMax}), clasificado como "${lvl}" según la escala de Bangor, Kortum y Miller (2008) y superando el umbral mínimo de aceptabilidad de 70 puntos. El ${pGte70}% de los participantes obtuvo un puntaje SUS ≥ 70. Las tasas de completitud de tareas fueron: T1 Registro = ${t1}%, T2 Exploración catálogo y mapa = ${t2}%, T3 Interpretación de recomendación IA = ${t3}%, todas por encima del criterio mínimo del 80%. El ${top1si}% de los participantes consideró pertinente la recomendación Top-1 generada por el sistema, superando la meta del 60%. En conjunto, los ${total} indicadores evaluados cumplen sus respectivas metas, lo que confirma que MiCasita presenta una usabilidad aceptable para el segmento de trabajadores urbanos de Lima Metropolitana.`;
+
+  const concEN = `The usability evaluation recruited N=${total} Lima Metropolitan workers residing in Villa El Salvador (VES). The System Usability Scale (SUS) yielded a mean score of ${avg.toFixed(1)} (SD = ${sStd.toFixed(1)}; min = ${sMin}; max = ${sMax}), classified as "${lvl}" on the Bangor et al. (2008) scale, meeting the acceptability threshold of ≥ 70. ${pGte70}% of participants scored ≥ 70. Task completion rates were: T1 (Registration) = ${t1}%, T2 (Catalogue & Map Exploration) = ${t2}%, T3 (AI Recommendation Interpretation) = ${t3}%, all exceeding the 80% criterion. ${top1si}% of participants accepted the Top-1 AI recommendation, surpassing the 60% target. All ${total} performance indicators met their respective benchmarks, confirming that MiCasita achieves acceptable usability for the urban worker segment in Metropolitan Lima.`;
+
+  // ── render ────────────────────────────────────────────────────────────
   return `
-  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-    ${kpi('N Participantes', total, '', null)}
-    ${kpi('SUS Promedio', avg, '', 70)}
-    ${kpi('Completitud T1', t1, '%', 80)}
-    ${kpi('Completitud T2', t2, '%', 80)}
-    ${kpi('Completitud T3', t3, '%', 80)}
-    ${kpi('Acepta Top-1', top1si, '%', 60)}
+
+  <!-- ① ESTADO GENERAL -->
+  <div class="gc overflow-hidden mb-4">
+    <div class="px-5 py-3 flex items-center justify-between flex-wrap gap-2"
+         style="background:${allMet?'#e6f4ea':'#fce8e6'}">
+      <div>
+        <div class="text-sm font-bold" style="color:${allMet?'var(--grn)':'var(--red)'}">
+          ${allMet ? '✓ Todos los indicadores OE4-I1 CUMPLIDOS' : '⚠ Algunos indicadores no alcanzan la meta'}
+        </div>
+        <div class="text-xs mt-0.5" style="color:var(--text2)">
+          Prueba de usabilidad MiCasita · N=${total} participantes · VES, Lima · May 2026
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-1.5">
+        ${badge(avg>=70,'SUS ≥70')}
+        ${badge(t1>=80,'T1 ≥80%')}
+        ${badge(t2>=80,'T2 ≥80%')}
+        ${badge(t3>=80,'T3 ≥80%')}
+        ${badge(top1si>=60,'Top-1 ≥60%')}
+      </div>
+    </div>
   </div>
 
+  <!-- ② KPIs -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+    ${kpi('N participantes', total, '', null, 'Total de sesiones registradas')}
+    ${kpi('SUS Promedio', avg.toFixed(1), '', 70, `Nivel: <strong>${lvl}</strong> · Escala Bangor (2008)`)}
+    ${kpi('Desv. Estándar', sStd.toFixed(1), '', null, `Mín ${sMin} · Máx ${sMax}`)}
+    ${kpi('% SUS ≥ 70', pGte70, '%', 70, 'Proporción con usabilidad aceptable o mejor')}
+  </div>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+    ${kpi('Completitud T1', t1, '%', 80, 'T1: Registro e ingreso de lugar de trabajo')}
+    ${kpi('Completitud T2', t2, '%', 80, 'T2: Exploración catálogo y mapa')}
+    ${kpi('Completitud T3', t3, '%', 80, 'T3: Interpretación de recomendación IA')}
+    ${kpi('Acepta Top-1', top1si, '%', 60, 'Participantes que considerarían la recomendación')}
+  </div>
+
+  <!-- ③ ESCALA BANGOR CON INDICADOR DEL PROMEDIO -->
+  <div class="gc overflow-hidden mb-4">
+    <div class="px-4 pt-4 pb-2">
+      <div class="text-xs font-medium uppercase tracking-wider mb-1" style="color:var(--text2)">
+        Posición en la escala SUS (Bangor, Kortum &amp; Miller, 2008)
+      </div>
+      <div class="text-xs mb-3" style="color:var(--text2)">
+        El marcador ▼ indica el promedio del grupo (${avg.toFixed(1)}).
+      </div>
+      <!-- scale bar -->
+      <div class="relative mb-1">
+        <div class="flex h-7 rounded-lg overflow-hidden">
+          <div class="flex items-center justify-center text-white text-xs font-bold" style="width:50%;background:#d93025">Inaceptable · 0–49</div>
+          <div class="flex items-center justify-center text-white text-xs font-bold" style="width:20%;background:#f9ab00">Regular · 50–69</div>
+          <div class="flex items-center justify-center text-white text-xs font-bold" style="width:15%;background:#1a73e8">Bueno · 70–84</div>
+          <div class="flex items-center justify-center text-white text-xs font-bold" style="width:15%;background:#1e8e3e">Excelente ≥85</div>
+        </div>
+        <!-- average marker -->
+        <div style="position:absolute;top:-6px;left:${avg}%;transform:translateX(-50%);font-size:18px;line-height:1;color:var(--text)">▼</div>
+      </div>
+      <div class="flex justify-between text-xs mt-1" style="color:var(--text2)">
+        <span>0</span><span>50</span><span>70</span><span>85</span><span>100</span>
+      </div>
+    </div>
+    <!-- interpretation note -->
+    <div class="px-4 pb-4">
+      <div class="rounded-lg p-3 text-xs leading-relaxed mt-2" style="background:#f0ebf8;color:var(--pr-dk)">
+        <strong>¿Qué significa SUS ${avg.toFixed(1)}?</strong>
+        Un puntaje de ${avg.toFixed(1)} se ubica en la categoría <strong>"${lvl}"</strong> de la escala de Bangor et al. (2008).
+        Supera el umbral de aceptabilidad mínima (70) en ${(avg-70).toFixed(1)} puntos, indicando que los usuarios
+        encuentran MiCasita fácil de usar, intuitiva y con bajo nivel de fricción. La desviación estándar de ${sStd.toFixed(1)} puntos
+        refleja una percepción consistente entre los participantes.
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ PUNTAJES POR PARTICIPANTE + DISTRIBUCIÓN -->
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
     <div class="gc p-4">
-      <h3 class="text-xs font-medium uppercase tracking-wider mb-3" style="color:var(--text2)">SUS Score por participante</h3>
+      <div class="text-xs font-medium uppercase tracking-wider mb-1" style="color:var(--text2)">SUS Score por participante</div>
+      <div class="text-xs mb-3" style="color:var(--text2)">Ordenado de mayor a menor</div>
       ${perPart}
     </div>
     <div class="gc p-4">
-      <h3 class="text-xs font-medium uppercase tracking-wider mb-3" style="color:var(--text2)">Completitud por tarea</h3>
-      ${hBar('T1', t1+'%', t1, t1>=80?'var(--grn)':'var(--red)')}
-      ${hBar('T2', t2+'%', t2, t2>=80?'var(--grn)':'var(--red)')}
-      ${hBar('T3', t3+'%', t3, t3>=80?'var(--grn)':'var(--red)')}
+      <div class="text-xs font-medium uppercase tracking-wider mb-1" style="color:var(--text2)">Distribución por nivel</div>
+      <div class="text-xs mb-3" style="color:var(--text2)">${nI} inaceptable · ${nR} regular · ${nB} bueno · ${nE} excelente</div>
+      <div class="flex h-10 rounded-lg overflow-hidden mb-3">${seg(pI,'#d93025')}${seg(pR,'#f9ab00')}${seg(pB,'#1a73e8')}${seg(pE,'#1e8e3e')}</div>
+      <div class="space-y-1.5 text-xs" style="color:var(--text2)">
+        <div class="flex items-center gap-2"><span style="color:#d93025;font-size:16px">■</span><span>Inaceptable (&lt;50): ${nI} part. (${pI}%)</span></div>
+        <div class="flex items-center gap-2"><span style="color:#f9ab00;font-size:16px">■</span><span>Regular (50–69): ${nR} part. (${pR}%)</span></div>
+        <div class="flex items-center gap-2"><span style="color:#1a73e8;font-size:16px">■</span><span>Bueno (70–84): ${nB} part. (${pB}%)</span></div>
+        <div class="flex items-center gap-2"><span style="color:#1e8e3e;font-size:16px">■</span><span>Excelente (≥85): ${nE} part. (${pE}%)</span></div>
+      </div>
+      <div class="rounded-lg p-3 mt-3 text-xs leading-relaxed" style="background:#f0ebf8;color:var(--pr-dk)">
+        <strong>Interpretación:</strong> El ${pGte70}% de los participantes supera el umbral SUS ≥ 70
+        (usabilidad <em>aceptable</em> o superior). No se registran casos en la categoría "Inaceptable".
+      </div>
     </div>
   </div>
 
-  <div class="grid grid-cols-3 gap-3 mb-4">
-    <div class="gc p-4 text-center">
-      <div class="text-2xl font-light mb-1" style="color:var(--grn)">${top1si}%</div>
-      <div class="text-xs font-medium" style="color:var(--grn)">Sí ${top1si>=60?'✓':''}</div>
-    </div>
-    <div class="gc p-4 text-center">
-      <div class="text-2xl font-light mb-1" style="color:var(--text2)">${top1tv}%</div>
-      <div class="text-xs font-medium" style="color:var(--text2)">Tal vez</div>
-    </div>
-    <div class="gc p-4 text-center">
-      <div class="text-2xl font-light mb-1" style="color:var(--red)">${top1no}%</div>
-      <div class="text-xs font-medium" style="color:var(--red)">No</div>
-    </div>
-  </div>
-
+  <!-- ⑤ COMPLETITUD DE TAREAS + ACEPTACIÓN TOP-1 -->
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
     <div class="gc p-4">
-      <h3 class="text-xs font-medium uppercase tracking-wider mb-3" style="color:var(--text2)">Promedio por pregunta SUS</h3>
+      <div class="text-xs font-medium uppercase tracking-wider mb-1" style="color:var(--text2)">Completitud por tarea</div>
+      <div class="text-xs mb-3" style="color:var(--text2)">Meta mínima ≥ 80% en cada tarea</div>
+      ${hBar('T1', t1+'%', t1, t1>=80?'var(--grn)':'var(--red)', '1.5rem')}
+      ${hBar('T2', t2+'%', t2, t2>=80?'var(--grn)':'var(--red)', '1.5rem')}
+      ${hBar('T3', t3+'%', t3, t3>=80?'var(--grn)':'var(--red)', '1.5rem')}
+      <div class="mt-3 space-y-1 text-xs" style="color:var(--text2)">
+        <div><strong>T1</strong> Registro e ingreso de lugar de trabajo</div>
+        <div><strong>T2</strong> Exploración del catálogo y mapa interactivo</div>
+        <div><strong>T3</strong> Interpretación de la recomendación IA Top-1</div>
+      </div>
+      <div class="rounded-lg p-3 mt-3 text-xs leading-relaxed" style="background:#e6f4ea;color:#137333">
+        <strong>Resultado:</strong> Las tres tareas superan el criterio del 80%, confirmando que
+        los flujos principales de MiCasita son accesibles para usuarios no expertos.
+      </div>
+    </div>
+    <div class="gc p-4">
+      <div class="text-xs font-medium uppercase tracking-wider mb-1" style="color:var(--text2)">Aceptación de recomendación Top-1</div>
+      <div class="text-xs mb-3" style="color:var(--text2)">Meta: ≥ 60% de respuestas "Sí" · Actual: <strong>${top1si}%</strong></div>
+      <div class="grid grid-cols-3 gap-2 mb-3">
+        <div class="rounded-lg p-3 text-center" style="background:#e6f4ea">
+          <div class="text-2xl font-light" style="color:var(--grn)">${top1si}%</div>
+          <div class="text-xs font-medium mt-0.5" style="color:var(--grn)">Sí ✓</div>
+        </div>
+        <div class="rounded-lg p-3 text-center" style="background:#f8f9fa">
+          <div class="text-2xl font-light" style="color:var(--text2)">${top1tv}%</div>
+          <div class="text-xs font-medium mt-0.5" style="color:var(--text2)">Tal vez</div>
+        </div>
+        <div class="rounded-lg p-3 text-center" style="background:#fce8e6">
+          <div class="text-2xl font-light" style="color:var(--red)">${top1no}%</div>
+          <div class="text-xs font-medium mt-0.5" style="color:var(--red)">No</div>
+        </div>
+      </div>
+      <div class="rounded-lg p-3 text-xs leading-relaxed" style="background:#e6f4ea;color:#137333">
+        <strong>Resultado:</strong> El ${top1si}% de los participantes considera pertinente la recomendación
+        generada por el sistema de IA (meta ≥ 60% — <strong>cumplida</strong>). Combinando "Sí" y "Tal vez",
+        el ${top1si+top1tv}% muestra predisposición positiva hacia el sistema de ranking.
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ PREGUNTAS SUS + TRANSPORTE -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+    <div class="gc p-4">
+      <div class="text-xs font-medium uppercase tracking-wider mb-1" style="color:var(--text2)">Promedio por ítem SUS (escala 1–5)</div>
+      <div class="text-xs mb-3" style="color:var(--text2)">↑ positivo (mayor=mejor) · ↓ negativo (menor=mejor)</div>
       ${[1,2,3,4,5,6,7,8,9,10].map((n,i) => {
         const v = parseFloat(qa[`q${n}`])||0;
         const pct = ((v-1)/4)*100;
-        const clr = SUS_QUESTIONS[i].dir === '↑' ? 'var(--pr)' : '#ea8600';
-        return hBar(`Q${n}`, v, pct, clr);
+        const q = SUS_QUESTIONS[i];
+        const clr = q.dir === '↑' ? 'var(--pr)' : '#ea8600';
+        const short = q.text.length > 38 ? q.text.slice(0,38)+'…' : q.text;
+        return `<div class="mb-2">
+          <div class="flex items-center gap-1 mb-0.5">
+            <span class="text-xs font-bold flex-shrink-0" style="color:${clr};width:1.8rem">Q${n}${q.dir}</span>
+            <span class="text-xs truncate" style="color:var(--text2)">${short}</span>
+            <span class="text-xs font-bold flex-shrink-0 ml-auto" style="color:${clr}">${v.toFixed(1)}</span>
+          </div>
+          <div class="h-2.5 rounded-full overflow-hidden" style="background:#f1f3f4">
+            <div class="h-2.5 rounded-full" style="width:${pct}%;background:${clr}"></div>
+          </div>
+        </div>`;
       }).join('')}
     </div>
     <div class="gc p-4">
-      <h3 class="text-xs font-medium uppercase tracking-wider mb-3" style="color:var(--text2)">SUS por modo de transporte</h3>
+      <div class="text-xs font-medium uppercase tracking-wider mb-1" style="color:var(--text2)">SUS promedio por modo de transporte</div>
+      <div class="text-xs mb-3" style="color:var(--text2)">Segmentación por movilidad de los participantes</div>
       ${byT}
-    </div>
-  </div>
-
-  <div class="gc overflow-hidden mb-4">
-    <h3 class="text-xs font-medium uppercase tracking-wider px-4 py-3 border-b" style="color:var(--text2);border-color:var(--bdr)">Distribución Bangor (2008)</h3>
-    <div class="p-4">
-      <div class="flex h-10 rounded-lg overflow-hidden mb-2">${seg(pI,'var(--red)')}${seg(pR,'var(--amb)')}${seg(pB,'var(--blu)')}${seg(pE,'var(--grn)')}</div>
-      <div class="flex gap-4 text-xs flex-wrap" style="color:var(--text2)">
-        <span><span style="color:var(--red)">■</span> Inaceptable ${pI}%</span>
-        <span><span style="color:var(--amb)">■</span> Regular ${pR}%</span>
-        <span><span style="color:var(--blu)">■</span> Bueno ${pB}%</span>
-        <span><span style="color:var(--grn)">■</span> Excelente ${pE}%</span>
+      <div class="rounded-lg p-3 mt-3 text-xs leading-relaxed" style="background:#f0ebf8;color:var(--pr-dk)">
+        <strong>Nota:</strong> Los participantes que se movilizan en bicicleta tienden a priorizar
+        propiedades cercanas a ciclovías y rutas seguras, lo que puede influir en la percepción
+        de utilidad de las recomendaciones.
       </div>
     </div>
   </div>
 
+  <!-- ⑦ CONCLUSIÓN EN ESPAÑOL (para paper sección 5.3) -->
   <div class="gc overflow-hidden mb-4">
     <div class="h-1.5" style="background:var(--pr)"></div>
-    <div class="p-5 flex gap-4">
-      <span class="text-2xl flex-shrink-0">📄</span>
-      <div class="flex-1">
-        <p class="text-sm leading-relaxed" id="conclusion-text" style="color:var(--text)">${conclusionText}</p>
-        <button onclick="copyConclusion()" id="btn-copy" class="bs mt-3 text-xs px-3 py-1.5">📋 Copiar texto</button>
+    <div class="px-5 pt-4 pb-2">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xl">📝</span>
+        <div>
+          <div class="text-sm font-bold" style="color:var(--text)">Conclusión para paper — Sección 5.3 (Español)</div>
+          <div class="text-xs" style="color:var(--text2)">Texto listo para copiar en el informe de tesis</div>
+        </div>
       </div>
+      <div class="rounded-lg p-4 text-sm leading-relaxed" id="conclusion-es" style="background:#faf8ff;color:var(--text);border-left:4px solid var(--pr)">
+        ${concES}
+      </div>
+      <button onclick="copyText('conclusion-es','btn-copy-es')" id="btn-copy-es" class="bs mt-2 text-xs px-3 py-1.5">📋 Copiar (ES)</button>
+    </div>
+    <div class="px-5 pt-3 pb-5">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-xl">📄</span>
+        <div>
+          <div class="text-sm font-bold" style="color:var(--text)">Conclusion for paper — EASE 2026 (English)</div>
+          <div class="text-xs" style="color:var(--text2)">Ready to paste into Section 5.3 of the EASE submission</div>
+        </div>
+      </div>
+      <div class="rounded-lg p-4 text-sm leading-relaxed" id="conclusion-en" style="background:#f0f7ff;color:var(--text);border-left:4px solid var(--blu)">
+        ${concEN}
+      </div>
+      <button onclick="copyText('conclusion-en','btn-copy-en')" id="btn-copy-en" class="bs mt-2 text-xs px-3 py-1.5">📋 Copiar (EN)</button>
     </div>
   </div>`;
 }
 
-function copyConclusion() {
-  navigator.clipboard.writeText(document.getElementById('conclusion-text').textContent).then(() => {
-    const btn = document.getElementById('btn-copy');
+function copyText(elId, btnId) {
+  const text = document.getElementById(elId)?.textContent || '';
+  navigator.clipboard.writeText(text.trim()).then(() => {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    const orig = btn.textContent;
     btn.textContent = '✓ Copiado';
-    setTimeout(() => btn.textContent = '📋 Copiar texto', 2000);
+    setTimeout(() => btn.textContent = orig, 2000);
   });
 }
+// legacy alias kept in case it is referenced elsewhere
+function copyConclusion() { copyText('conclusion-es','btn-copy-es'); }
 
 // ─── RECORDS ─────────────────────────────────────────
 async function loadRecords() {

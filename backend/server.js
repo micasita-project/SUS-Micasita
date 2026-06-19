@@ -8,8 +8,9 @@ const app = express();
 const allowedOrigins = (process.env.FRONTEND_URL || '*').split(',').map(s => s.trim());
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow null origin (file:// protocol for local testing) and configured origins
-    if (allowedOrigins.includes('*') || !origin || allowedOrigins.includes(origin)) {
+    // !origin = no Origin header (curl, Postman, server-to-server)
+    // origin === 'null' = file:// protocol (browser sends literal string "null")
+    if (allowedOrigins.includes('*') || !origin || origin === 'null' || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('CORS: origin not allowed — ' + origin));
