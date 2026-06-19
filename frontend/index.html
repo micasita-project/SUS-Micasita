@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MiCasita — Evaluación SUS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --pr:    #673AB7;
+      --pr-dk: #512DA8;
+      --pr-lt: #f3e5f5;
+      --pr-bg: #f0ebf8;
+      --card:  #ffffff;
+      --text:  #202124;
+      --text2: #5f6368;
+      --bdr:   rgba(0,0,0,.12);
+      --req:   #d93025;
+      --sh:    0 2px 1px -1px rgba(0,0,0,.2),0 1px 1px 0 rgba(0,0,0,.14),0 1px 3px 0 rgba(0,0,0,.12);
+      --grn:   #1e8e3e;
+      --red:   #d93025;
+      --blu:   #1a73e8;
+      --amb:   #f9ab00;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: 'Roboto', sans-serif; background: var(--pr-bg); color: var(--text); margin: 0; }
+
+    /* ── MATERIAL INPUTS ── */
+    .mi {
+      width: 100%; border: none; border-bottom: 1px solid var(--bdr);
+      background: transparent; padding: 8px 0 5px;
+      font: 400 14px/1.5 'Roboto', sans-serif; color: var(--text);
+      outline: none; transition: border-color .2s;
+    }
+    .mi:focus { border-bottom: 2px solid var(--pr); padding-bottom: 4px; }
+    .mi::placeholder { color: var(--text2); }
+    select.mi {
+      appearance: none; cursor: pointer; padding-right: 20px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%235f6368' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E") no-repeat right 2px center;
+    }
+    textarea.mi { resize: vertical; min-height: 52px; }
+    .fi { margin-bottom: 0; }
+    .fi label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 3px; }
+
+    /* ── CARDS ── */
+    .gc { background: var(--card); border-radius: 8px; box-shadow: var(--sh); }
+
+    /* ── CHIPS / PILLS ── */
+    .chip {
+      cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+      border: 1px solid #dadce0; border-radius: 20px; padding: 6px 16px;
+      font: 500 13px 'Roboto', sans-serif; background: transparent; color: var(--text);
+      transition: all .15s;
+    }
+    .chip:hover            { background: var(--pr-lt); }
+    .chip-gray             { background: transparent; color: var(--text); border-color: #dadce0; }
+    .chip-navy             { background: var(--pr); color: #fff; border-color: var(--pr); }
+    .chip-green            { background: var(--grn); color: #fff; border-color: var(--grn); }
+    .chip-red              { background: var(--red); color: #fff; border-color: var(--red); }
+
+    /* ── LIKERT ── */
+    .lb {
+      transition: all .15s; cursor: pointer;
+      border: 2px solid #dadce0; border-radius: 8px;
+      background: #fff; color: var(--text);
+    }
+    .lb:hover              { border-color: var(--pr); background: var(--pr-lt); }
+    .lb.selected           { background: var(--pr); color: #fff; border-color: var(--pr); transform: translateY(-2px); box-shadow: 0 3px 10px rgba(103,58,183,.3); }
+    .sus-card              { border: 1px solid #e8eaed; transition: border-color .2s, background .2s; }
+    .sus-card.answered     { border-left: 4px solid var(--pr); background: #faf8ff; }
+
+    /* ── TABS ── */
+    .tb {
+      color: var(--text2); font: 500 14px 'Roboto', sans-serif;
+      padding: 14px 20px; border-bottom: 3px solid transparent;
+      background: none; border-top: none; border-left: none; border-right: none;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .tb.active             { color: var(--pr); border-bottom-color: var(--pr); font-weight: 700; }
+    .tb:hover:not(.active) { background: rgba(103,58,183,.05); color: var(--text); }
+
+    /* ── BUTTONS ── */
+    .bp {
+      background: var(--pr); color: #fff; border: none;
+      padding: 10px 28px; border-radius: 4px;
+      font: 500 14px 'Roboto', sans-serif; cursor: pointer;
+      transition: all .2s; box-shadow: 0 1px 2px rgba(0,0,0,.3);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .bp:hover              { background: var(--pr-dk); box-shadow: 0 2px 6px rgba(103,58,183,.4); }
+    .bp:disabled           { background: #bdbdbd; box-shadow: none; cursor: not-allowed; }
+    .bs {
+      background: transparent; color: var(--pr); border: 1px solid #dadce0;
+      padding: 10px 24px; border-radius: 4px;
+      font: 500 14px 'Roboto', sans-serif; cursor: pointer; transition: all .2s;
+    }
+    .bs:hover              { background: var(--pr-lt); border-color: var(--pr); }
+    .bg {
+      background: var(--grn); color: #fff; border: none;
+      padding: 10px 28px; border-radius: 4px;
+      font: 500 14px 'Roboto', sans-serif; cursor: pointer;
+      transition: all .2s; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .bg:hover              { background: #167234; }
+    .bg:disabled           { background: #bdbdbd; cursor: not-allowed; }
+
+    /* ── STEP INDICATORS ── */
+    .sc { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid #dadce0; flex-shrink: 0; }
+    .sc.done   { background: var(--grn); border-color: var(--grn); color: #fff; }
+    .sc.active { background: var(--pr);  border-color: var(--pr);  color: #fff; }
+    .sc.todo   { background: #fff;       border-color: #dadce0;    color: var(--text2); }
+
+    /* ── ANIMATIONS ── */
+    .fi-anim { animation: fadeIn .3s ease forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .pb-inner { transition: width .4s ease; }
+
+    /* ── SKELETON ── */
+    .sk { background: linear-gradient(90deg, #e8eaed 25%, #f8f9fa 50%, #e8eaed 75%); background-size: 200% 100%; animation: sh 1.5s infinite; border-radius: 8px; }
+    @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar              { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track        { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb        { background: var(--pr); border-radius: 3px; }
+
+    /* ── MISC ── */
+    .req { color: var(--req); }
+    .task-hdr { background: var(--pr-lt); border-bottom: 1px solid #e1bee7; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ STICKY HEADER ══════════ -->
+<header class="sticky top-0 z-50 bg-white" style="box-shadow:0 2px 4px rgba(0,0,0,.1)">
+  <div class="max-w-3xl mx-auto px-4">
+    <!-- Logo + title row -->
+    <div class="flex items-center gap-3 pt-3 pb-1 border-b" style="border-color:var(--bdr)">
+      <div class="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0" style="background:var(--pr)">🏠</div>
+      <div class="min-w-0">
+        <div class="font-bold text-sm leading-tight" style="color:var(--pr)">MiCasita SUS</div>
+        <div class="text-xs truncate" style="color:var(--text2)">Evaluación de Usabilidad · OE4 · UPC 2026</div>
+      </div>
+    </div>
+    <!-- Material tabs -->
+    <div class="flex overflow-x-auto">
+      <button onclick="switchTab('form')"      id="tab-form"      class="tb">📝 Formulario</button>
+      <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tb">📊 Dashboard</button>
+      <button onclick="switchTab('records')"   id="tab-records"   class="tb">📋 Registros</button>
+    </div>
+    <!-- Progress bar (form only) -->
+    <div id="form-progress-bar" class="h-1 rounded-full overflow-hidden" style="background:var(--pr-lt)">
+      <div id="pb-inner" class="pb-inner h-1 rounded-full" style="background:var(--pr);width:20%"></div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-3xl mx-auto px-4 py-5">
+
+  <!-- ══════════ TAB FORM ══════════ -->
+  <div id="panel-form">
+
+    <!-- Form header card (Google Forms style: thick top border) -->
+    <div class="gc mb-4 overflow-hidden">
+      <div class="h-2.5" style="background:var(--pr)"></div>
+      <div class="px-6 py-5">
+        <h1 class="text-2xl font-normal mb-1" style="color:var(--text)">Evaluación de Usabilidad SUS</h1>
+        <p class="text-sm mb-5" style="color:var(--text2)">Formulario para facilitadores · Registre los datos del participante y la sesión de prueba.</p>
+        <!-- Step stepper -->
+        <div class="flex items-center gap-1 flex-wrap">
+          <div id="si-1" class="step-indicator flex items-center gap-1.5">
+            <div class="sc active">1</div>
+            <span class="text-xs font-semibold hidden sm:inline" style="color:var(--pr)">Participante</span>
+          </div>
+          <div class="text-xs mx-1" style="color:#dadce0">——</div>
+          <div id="si-2" class="step-indicator flex items-center gap-1.5">
+            <div class="sc todo">2</div>
+            <span class="text-xs hidden sm:inline" style="color:var(--text2)">Tareas</span>
+          </div>
+          <div class="text-xs mx-1" style="color:#dadce0">——</div>
+          <div id="si-3" class="step-indicator flex items-center gap-1.5">
+            <div class="sc todo">3</div>
+            <span class="text-xs hidden sm:inline" style="color:var(--text2)">SUS</span>
+          </div>
+          <div class="text-xs mx-1" style="color:#dadce0">——</div>
+          <div id="si-4" class="step-indicator flex items-center gap-1.5">
+            <div class="sc todo">4</div>
+            <span class="text-xs hidden sm:inline" style="color:var(--text2)">Abiertas</span>
+          </div>
+          <div class="text-xs mx-1" style="color:#dadce0">——</div>
+          <div id="si-5" class="step-indicator flex items-center gap-1.5">
+            <div class="sc todo">5</div>
+            <span class="text-xs hidden sm:inline" style="color:var(--text2)">Resultado</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PASO 1 ── -->
+    <div id="step-1" class="step-panel fi-anim">
+      <div class="gc p-6 mb-3">
+        <h2 class="text-sm font-medium mb-5 pb-2 border-b" style="color:var(--pr);border-color:var(--bdr)">Paso 1 — Datos del participante</h2>
+
+        <div class="fi mb-5">
+          <label>Nombre completo <span class="req">*</span></label>
+          <input id="f-nombre" type="text" class="mi" placeholder="Tu respuesta" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 mb-5">
+          <div class="fi">
+            <label>Edad <span class="req">*</span></label>
+            <input id="f-edad" type="number" min="18" class="mi" placeholder="≥ 18" />
+          </div>
+          <div class="fi">
+            <label>Género</label>
+            <select id="f-genero" class="mi">
+              <option value="">— Seleccionar —</option>
+              <option>Masculino</option><option>Femenino</option><option>Prefiero no indicar</option>
+            </select>
+          </div>
+          <div class="fi">
+            <label>Distrito donde vive <span class="req">*</span></label>
+            <input id="f-dist_vive" type="text" class="mi" placeholder="Ej: Miraflores" />
+          </div>
+          <div class="fi">
+            <label>Distrito de trabajo <span class="req">*</span></label>
+            <input id="f-dist_trabajo" type="text" class="mi" placeholder="Ej: San Isidro" />
+          </div>
+          <div class="fi">
+            <label>Presupuesto mensual S/.</label>
+            <input id="f-presupuesto" type="number" min="0" class="mi" placeholder="Ej: 1500" />
+          </div>
+          <div class="fi">
+            <label>Frecuencia de uso de apps</label>
+            <select id="f-freq_apps" class="mi">
+              <option value="">— Seleccionar —</option>
+              <option>Varias veces al día</option>
+              <option>Una vez al día</option>
+              <option>Algunas veces a la semana</option>
+              <option>Raramente</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="mb-5">
+          <p class="text-xs mb-2" style="color:var(--text2)">¿Experiencia previa con apps de vivienda?</p>
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="setChip('exp_app','Sí',this)" class="chip chip-gray">Sí</button>
+            <button onclick="setChip('exp_app','No',this)" class="chip chip-gray">No</button>
+          </div>
+        </div>
+
+        <div class="mb-1">
+          <p class="text-xs mb-2" style="color:var(--text2)">Modo de transporte al trabajo</p>
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="setChip('transporte','Auto',this)"       class="chip chip-gray">🚗 Auto</button>
+            <button onclick="setChip('transporte','Bicicleta',this)"  class="chip chip-gray">🚲 Bicicleta</button>
+            <button onclick="setChip('transporte','Caminando',this)"  class="chip chip-gray">🚶 Caminando</button>
+          </div>
+        </div>
+
+        <div id="alert-step1" class="hidden mt-4 p-3 rounded text-sm" style="background:#fce8e6;color:var(--red)">
+          Completa los campos obligatorios (*).
+        </div>
+        <div class="flex justify-end mt-6">
+          <button onclick="goStep(2)" class="bp">Siguiente →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PASO 2 ── -->
+    <div id="step-2" class="step-panel hidden">
+      <!-- Warning banner -->
+      <div class="p-4 rounded-lg mb-4 text-sm" style="background:#fef7e0;border-left:4px solid var(--amb);color:#5f4c09">
+        ⏱ <strong>Facilitador:</strong> Cronometrar desde que se lee el enunciado. Si no avanza en 2 min → marcar No completada y pasar a la siguiente.
+      </div>
+
+      <!-- T1 -->
+      <div class="gc mb-3 overflow-hidden">
+        <div class="task-hdr px-5 py-3 flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:var(--pr)">T1</div>
+          <div>
+            <div class="font-medium text-sm" style="color:var(--pr)">Registro e ingreso de lugar de trabajo</div>
+            <div class="text-xs" style="color:var(--text2)">Meta ≤ 4 min</div>
+          </div>
+        </div>
+        <div class="p-5">
+          <p class="text-sm italic mb-5" style="color:var(--text2)">«Abre la app, regístrate con la cuenta de prueba, ingresa tu lugar de trabajo en Lima, configura tu presupuesto y modo de transporte preferido.»</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 mb-4">
+            <div>
+              <p class="text-xs mb-2" style="color:var(--text2)">¿Completó?</p>
+              <div class="flex gap-2">
+                <button onclick="setChip('t1_comp','1',this)" class="chip chip-gray">✓ Sí</button>
+                <button onclick="setChip('t1_comp','0',this)" class="chip chip-gray">✗ No</button>
+              </div>
+            </div>
+            <div class="fi">
+              <label>Tiempo (min)</label>
+              <input id="f-t1_tiempo" type="number" min="0" step="0.5" class="mi" placeholder="0.0" />
+            </div>
+          </div>
+          <div class="fi">
+            <label>Observaciones</label>
+            <textarea id="f-t1_obs" class="mi" placeholder="Notas del facilitador..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- T2 -->
+      <div class="gc mb-3 overflow-hidden">
+        <div class="task-hdr px-5 py-3 flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:var(--pr)">T2</div>
+          <div>
+            <div class="font-medium text-sm" style="color:var(--pr)">Exploración del catálogo y mapa</div>
+            <div class="text-xs" style="color:var(--text2)">Meta ≤ 5 min</div>
+          </div>
+        </div>
+        <div class="p-5">
+          <p class="text-sm italic mb-5" style="color:var(--text2)">«Navega al catálogo, aplica un filtro de presupuesto, elige una propiedad en el mapa y revisa cuánto tardarías en llegar a tu trabajo.»</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 mb-4">
+            <div>
+              <p class="text-xs mb-2" style="color:var(--text2)">¿Completó?</p>
+              <div class="flex gap-2">
+                <button onclick="setChip('t2_comp','1',this)" class="chip chip-gray">✓ Sí</button>
+                <button onclick="setChip('t2_comp','0',this)" class="chip chip-gray">✗ No</button>
+              </div>
+            </div>
+            <div class="fi">
+              <label>Tiempo (min)</label>
+              <input id="f-t2_tiempo" type="number" min="0" step="0.5" class="mi" placeholder="0.0" />
+            </div>
+          </div>
+          <div class="fi">
+            <label>Observaciones</label>
+            <textarea id="f-t2_obs" class="mi" placeholder="Notas del facilitador..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- T3 -->
+      <div class="gc mb-3 overflow-hidden">
+        <div class="task-hdr px-5 py-3 flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="background:var(--pr)">T3</div>
+          <div>
+            <div class="font-medium text-sm" style="color:var(--pr)">Interpretación de la recomendación IA</div>
+            <div class="text-xs" style="color:var(--text2)">Meta ≤ 6 min</div>
+          </div>
+        </div>
+        <div class="p-5">
+          <p class="text-sm italic mb-5" style="color:var(--text2)">«Ve a Recomendaciones IA. Encuentra la vivienda con mayor puntaje, lee por qué la app te la recomienda, y dime: ¿la considerarías?»</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 mb-4">
+            <div>
+              <p class="text-xs mb-2" style="color:var(--text2)">¿Completó?</p>
+              <div class="flex gap-2">
+                <button onclick="setChip('t3_comp','1',this)" class="chip chip-gray">✓ Sí</button>
+                <button onclick="setChip('t3_comp','0',this)" class="chip chip-gray">✗ No</button>
+              </div>
+            </div>
+            <div class="fi">
+              <label>Tiempo (min)</label>
+              <input id="f-t3_tiempo" type="number" min="0" step="0.5" class="mi" placeholder="0.0" />
+            </div>
+          </div>
+          <div class="mb-4">
+            <p class="text-xs mb-2" style="color:var(--text2)">¿Acepta Top-1?</p>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="setChip('top1','Sí',this)"      class="chip chip-gray">Sí la consideraría</button>
+              <button onclick="setChip('top1','No',this)"      class="chip chip-gray">No</button>
+              <button onclick="setChip('top1','Tal vez',this)" class="chip chip-gray">Tal vez</button>
+            </div>
+          </div>
+          <div class="fi">
+            <label>Observaciones</label>
+            <textarea id="f-t3_obs" class="mi" placeholder="Notas del facilitador..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-between mt-2">
+        <button onclick="goStep(1)" class="bs">← Atrás</button>
+        <button onclick="goStep(3)" class="bp">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- ── PASO 3 ── -->
+    <div id="step-3" class="step-panel hidden">
+      <div class="gc p-5 mb-4">
+        <h2 class="text-sm font-medium mb-1" style="color:var(--pr)">Paso 3 — Cuestionario SUS</h2>
+        <p class="text-sm" style="color:var(--text2)">Del 1 al 5, ¿qué tan de acuerdo estás con cada afirmación sobre la app?<br/>
+          <strong style="color:var(--text)">1 = Totalmente en desacuerdo &nbsp;·&nbsp; 5 = Totalmente de acuerdo</strong>
+        </p>
+      </div>
+
+      <div id="sus-questions" class="space-y-3"></div>
+
+      <div class="flex justify-between mt-4">
+        <button onclick="goStep(2)" class="bs">← Atrás</button>
+        <button onclick="goStep(4)" class="bp">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- ── PASO 4 ── -->
+    <div id="step-4" class="step-panel hidden">
+      <div class="gc p-6 mb-3">
+        <h2 class="text-sm font-medium mb-1" style="color:var(--pr)">Paso 4 — Preguntas abiertas</h2>
+        <p class="text-sm mb-6" style="color:var(--text2)">El facilitador anota las respuestas verbales del participante.</p>
+
+        <div class="space-y-6">
+          <div class="fi">
+            <label>P1. ¿Qué fue lo que más te gustó de la aplicación?</label>
+            <textarea id="f-oa1" class="mi" placeholder="Respuesta del participante..."></textarea>
+          </div>
+          <div class="fi">
+            <label>P2. ¿Qué fue lo más difícil o confuso al usarla?</label>
+            <textarea id="f-oa2" class="mi" placeholder="Respuesta del participante..."></textarea>
+          </div>
+          <div class="fi">
+            <label>P3. ¿La vivienda Top-1 la considerarías para buscar más info? ¿Por qué?</label>
+            <textarea id="f-oa3" class="mi" placeholder="Respuesta del participante..."></textarea>
+          </div>
+          <div class="fi">
+            <label>P4. ¿Cambiarías algo de cómo se muestra el tiempo de trayecto?</label>
+            <textarea id="f-oa4" class="mi" placeholder="Respuesta del participante..."></textarea>
+          </div>
+          <div>
+            <p class="text-xs mb-2" style="color:var(--text2)">P5. ¿Usarías esta app si estuvieras buscando vivienda en Lima?</p>
+            <div class="flex gap-2 flex-wrap mb-3">
+              <button onclick="setChip('p5_usa','Sí',this)"      class="chip chip-gray">Sí</button>
+              <button onclick="setChip('p5_usa','No',this)"      class="chip chip-gray">No</button>
+              <button onclick="setChip('p5_usa','Tal vez',this)" class="chip chip-gray">Tal vez</button>
+            </div>
+            <div class="fi">
+              <label>Comentario adicional</label>
+              <textarea id="f-oa5" class="mi" placeholder="Comentario..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div id="alert-save" class="hidden mt-4 p-3 rounded text-sm" style="background:#fce8e6;color:var(--red)"></div>
+
+        <div class="flex justify-between mt-6">
+          <button onclick="goStep(3)" class="bs">← Atrás</button>
+          <button id="btn-save" onclick="saveSession()" class="bg">✓ Guardar sesión</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PASO 5: RESULTADO ── -->
+    <div id="step-5" class="step-panel hidden">
+      <!-- Score card -->
+      <div class="gc overflow-hidden mb-4">
+        <div class="h-2.5" style="background:var(--pr)"></div>
+        <div class="p-6 flex flex-col items-center">
+          <p class="text-xs font-medium mb-4 uppercase tracking-widest" style="color:var(--text2)">Resultado de la sesión</p>
+          <!-- Score circle -->
+          <div id="score-circle" class="w-36 h-36 rounded-full flex flex-col items-center justify-center text-white shadow-lg mb-3">
+            <span id="score-value" class="text-5xl font-light">—</span>
+            <span class="text-xs font-medium opacity-80 mt-1">SUS Score</span>
+          </div>
+          <div id="score-level" class="text-lg font-medium mt-1 mb-6"></div>
+
+          <!-- Scale bar -->
+          <div class="w-full max-w-sm">
+            <div class="relative h-3 rounded-full overflow-hidden flex mb-1">
+              <div style="width:50%;background:var(--red);opacity:.85"></div>
+              <div style="width:20%;background:var(--amb);opacity:.9"></div>
+              <div style="width:15%;background:var(--blu);opacity:.9"></div>
+              <div style="width:15%;background:var(--grn);opacity:.9"></div>
+              <div id="score-marker" class="absolute top-0 h-full" style="left:0%;transition:left .6s ease">
+                <div class="w-0.5 h-full bg-white shadow opacity-90"></div>
+              </div>
+            </div>
+            <div class="flex justify-between text-xs" style="color:var(--text2)">
+              <span>0</span><span>50 Regular</span><span>70 Bueno</span><span>85 Excelente</span><span>100</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="gc p-5 mb-5">
+        <h3 class="text-xs font-medium uppercase tracking-widest mb-3" style="color:var(--text2)">Resumen de la sesión</h3>
+        <div id="summary-content"></div>
+      </div>
+
+      <div class="flex flex-wrap gap-3 justify-center">
+        <button onclick="downloadSessionCSV()" class="bs">⬇ Descargar sesión .csv</button>
+        <button onclick="newSession()"         class="bp">+ Nueva sesión</button>
+      </div>
+    </div>
+
+  </div><!-- end panel-form -->
+
+  <!-- ══════════ TAB DASHBOARD ══════════ -->
+  <div id="panel-dashboard" class="hidden">
+    <div class="gc overflow-hidden mb-5">
+      <div class="h-2.5" style="background:var(--pr)"></div>
+      <div class="px-6 py-4 flex flex-wrap justify-between items-center gap-3">
+        <div>
+          <h2 class="text-xl font-normal" style="color:var(--text)">Dashboard de resultados</h2>
+          <p class="text-sm" style="color:var(--text2)">Métricas agregadas de todas las sesiones</p>
+        </div>
+        <button onclick="loadDashboard()" class="bs text-sm">🔄 Actualizar</button>
+      </div>
+    </div>
+    <div id="dashboard-content"></div>
+  </div>
+
+  <!-- ══════════ TAB RECORDS ══════════ -->
+  <div id="panel-records" class="hidden">
+    <div class="gc overflow-hidden mb-4">
+      <div class="h-2.5" style="background:var(--pr)"></div>
+      <div class="px-6 py-4 flex flex-wrap justify-between items-center gap-3">
+        <div class="flex items-center gap-3">
+          <h2 class="text-xl font-normal" style="color:var(--text)">Registros individuales</h2>
+          <span id="records-badge" class="text-xs font-bold px-3 py-1 rounded-full" style="background:var(--pr-lt);color:var(--pr)">0 sesiones</span>
+        </div>
+        <button onclick="exportAllCSV()" class="bp text-sm">⬇ Exportar todo .csv</button>
+      </div>
+    </div>
+    <div id="records-content"></div>
+  </div>
+
+</main>
+
+<script>
+// ─── CONFIG ─────────────────────────────────────────
+const API_URL = 'http://localhost:3000'; // cambiar a la URL de Railway antes del deploy
+
+// ─── STATE ──────────────────────────────────────────
+const chipValues = {};
+let lastSession = null;
+
+const SUS_QUESTIONS = [
+  { dir:'↑', text:'Creo que me gustaría usar esta aplicación frecuentemente.' },
+  { dir:'↓', text:'Encontré la aplicación innecesariamente compleja.' },
+  { dir:'↑', text:'Pensé que la aplicación fue fácil de usar.' },
+  { dir:'↓', text:'Creo que necesitaría el apoyo de una persona técnica para poder usar esta aplicación.' },
+  { dir:'↑', text:'Encontré que las diversas funciones de esta aplicación estaban bien integradas.' },
+  { dir:'↓', text:'Pensé que había demasiada inconsistencia en esta aplicación.' },
+  { dir:'↑', text:'Imagino que la mayoría de las personas aprenderían a usar esta aplicación muy rápidamente.' },
+  { dir:'↓', text:'Encontré la aplicación muy engorrosa de usar.' },
+  { dir:'↑', text:'Me sentí muy confiado usando la aplicación.' },
+  { dir:'↓', text:'Necesité aprender muchas cosas antes de poder comenzar a usar esta aplicación.' },
+];
+
+// ─── INIT ───────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  buildSUSQuestions();
+  switchTab('form');
+  updateStepIndicators(1);
+});
+
+function buildSUSQuestions() {
+  const emojis = ['😠','😕','😐','🙂','😊'];
+  document.getElementById('sus-questions').innerHTML = SUS_QUESTIONS.map((q, i) => {
+    const n = i + 1;
+    const badgeBg  = q.dir === '↑' ? '#e8f5e9' : '#fce8e6';
+    const badgeClr = q.dir === '↑' ? '#1e8e3e' : '#d93025';
+    const btns = [1,2,3,4,5].map(v =>
+      `<button onclick="selectLikert('sus_q${n}',${v},this)" id="lq${n}-${v}"
+         class="lb py-2 flex flex-col items-center justify-center text-xs font-medium" style="min-width:44px">
+         <span class="text-base">${emojis[v-1]}</span><span>${v}</span>
+       </button>`).join('');
+    return `
+      <div id="card-sus-q${n}" class="sus-card gc p-4 rounded-lg border transition-all">
+        <div class="flex gap-3 items-start mb-3">
+          <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style="background:var(--pr)">${n}</div>
+          <p class="flex-1 text-sm">${q.text}</p>
+          <span class="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0" style="background:${badgeBg};color:${badgeClr}">${q.dir}</span>
+        </div>
+        <div class="grid grid-cols-5 gap-1">${btns}</div>
+      </div>`;
+  }).join('');
+}
+
+// ─── TABS ───────────────────────────────────────────
+function switchTab(tab) {
+  ['form','dashboard','records'].forEach(t => {
+    document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+  });
+  document.getElementById('form-progress-bar').classList.toggle('hidden', tab !== 'form');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (tab === 'dashboard') loadDashboard();
+  if (tab === 'records')   loadRecords();
+}
+
+// ─── STEPS ──────────────────────────────────────────
+function goStep(n) {
+  if (n === 2 && !validateStep1()) return;
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById(`step-${i}`);
+    el.classList.toggle('hidden', i !== n);
+    if (i === n) { el.classList.remove('fi-anim'); void el.offsetWidth; el.classList.add('fi-anim'); }
+  }
+  updateStepIndicators(n);
+  document.getElementById('pb-inner').style.width = (n * 20) + '%';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateStepIndicators(active) {
+  for (let i = 1; i <= 5; i++) {
+    const circle = document.querySelector(`#si-${i} .sc`);
+    const label  = document.querySelector(`#si-${i} span`);
+    if (!circle) continue;
+    circle.className = `sc ${i < active ? 'done' : i === active ? 'active' : 'todo'}`;
+    circle.textContent = i < active ? '✓' : i;
+    if (label) {
+      label.style.color      = i < active ? 'var(--grn)' : i === active ? 'var(--pr)' : 'var(--text2)';
+      label.style.fontWeight = i === active ? '600' : '400';
+    }
+  }
+}
+
+// ─── VALIDATION ─────────────────────────────────────
+function validateStep1() {
+  const ok = document.getElementById('f-nombre').value.trim() &&
+             document.getElementById('f-edad').value &&
+             document.getElementById('f-dist_vive').value.trim() &&
+             document.getElementById('f-dist_trabajo').value.trim();
+  document.getElementById('alert-step1').classList.toggle('hidden', !!ok);
+  return !!ok;
+}
+
+// ─── CHIPS ──────────────────────────────────────────
+function setChip(key, value, btn) {
+  chipValues[key] = value;
+  btn.parentElement.querySelectorAll('.chip').forEach(b => {
+    b.classList.remove('chip-navy','chip-green','chip-red');
+    b.classList.add('chip-gray');
+  });
+  btn.classList.remove('chip-gray');
+  const yes = value === 'Sí' || value === '1';
+  const no  = value === 'No'  || value === '0';
+  btn.classList.add(yes ? 'chip-green' : no ? 'chip-red' : 'chip-navy');
+}
+
+// ─── LIKERT ─────────────────────────────────────────
+function selectLikert(key, value, btn) {
+  chipValues[key] = value;
+  const n = key.replace('sus_q','');
+  for (let v = 1; v <= 5; v++) {
+    document.getElementById(`lq${n}-${v}`)?.classList.toggle('selected', v === value);
+  }
+  document.getElementById(`card-sus-q${n}`)?.classList.add('answered');
+}
+
+// ─── COLLECT FORM ────────────────────────────────────
+function collectForm() {
+  const g = id => document.getElementById(id)?.value || null;
+  const gi = id => parseInt(document.getElementById(id)?.value) || null;
+  const gf = id => parseFloat(document.getElementById(id)?.value) || null;
+  return {
+    nombre: document.getElementById('f-nombre').value.trim(),
+    edad: gi('f-edad'), genero: g('f-genero'),
+    dist_vive: document.getElementById('f-dist_vive').value.trim() || null,
+    dist_trabajo: document.getElementById('f-dist_trabajo').value.trim() || null,
+    transporte: chipValues['transporte'] || null,
+    presupuesto: gi('f-presupuesto'), freq_apps: g('f-freq_apps'),
+    exp_app: chipValues['exp_app'] || null,
+    t1_comp: chipValues['t1_comp'] != null ? parseInt(chipValues['t1_comp']) : null,
+    t1_tiempo: gf('f-t1_tiempo'), t1_obs: g('f-t1_obs'),
+    t2_comp: chipValues['t2_comp'] != null ? parseInt(chipValues['t2_comp']) : null,
+    t2_tiempo: gf('f-t2_tiempo'), t2_obs: g('f-t2_obs'),
+    t3_comp: chipValues['t3_comp'] != null ? parseInt(chipValues['t3_comp']) : null,
+    t3_tiempo: gf('f-t3_tiempo'), t3_obs: g('f-t3_obs'),
+    top1: chipValues['top1'] || null,
+    sus_q1:  chipValues['sus_q1']  || null, sus_q2:  chipValues['sus_q2']  || null,
+    sus_q3:  chipValues['sus_q3']  || null, sus_q4:  chipValues['sus_q4']  || null,
+    sus_q5:  chipValues['sus_q5']  || null, sus_q6:  chipValues['sus_q6']  || null,
+    sus_q7:  chipValues['sus_q7']  || null, sus_q8:  chipValues['sus_q8']  || null,
+    sus_q9:  chipValues['sus_q9']  || null, sus_q10: chipValues['sus_q10'] || null,
+    oa1: g('f-oa1'), oa2: g('f-oa2'), oa3: g('f-oa3'), oa4: g('f-oa4'),
+    p5_usa: chipValues['p5_usa'] || null, oa5: g('f-oa5'),
+  };
+}
+
+// ─── SAVE SESSION ────────────────────────────────────
+async function saveSession() {
+  const btn   = document.getElementById('btn-save');
+  const alert = document.getElementById('alert-save');
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Guardando...';
+  alert.classList.add('hidden');
+  try {
+    const res = await fetch(`${API_URL}/api/sessions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(collectForm())
+    });
+    if (!res.ok) throw new Error(await res.text());
+    lastSession = await res.json();
+    showResult(lastSession);
+    goStep(5);
+  } catch {
+    alert.classList.remove('hidden');
+    alert.textContent = 'Error al guardar. ¿Tienes conexión con el servidor?';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✓ Guardar sesión';
+  }
+}
+
+// ─── SHOW RESULT ─────────────────────────────────────
+function showResult(s) {
+  const score = parseFloat(s.sus_score) || 0;
+  const clr = score >= 85 ? 'var(--grn)' : score >= 70 ? 'var(--blu)' : score >= 50 ? 'var(--amb)' : 'var(--red)';
+  document.getElementById('score-circle').style.background = clr;
+  document.getElementById('score-value').textContent  = score;
+  document.getElementById('score-level').textContent  = s.nivel || '—';
+  document.getElementById('score-level').style.color  = clr;
+  setTimeout(() => document.getElementById('score-marker').style.left = Math.min(100,Math.max(0,score)) + '%', 120);
+  const ok = v => v === 1 ? `<span style="color:var(--grn);font-weight:700">✓ Sí</span>` : `<span style="color:var(--red);font-weight:700">✗ No</span>`;
+  document.getElementById('summary-content').innerHTML = `
+    <div class="grid grid-cols-2 gap-y-3 text-sm">
+      <div style="color:var(--text2)">Participante</div><div class="font-medium">${s.nombre}</div>
+      <div style="color:var(--text2)">T1 completó</div><div>${ok(s.t1_comp)}</div>
+      <div style="color:var(--text2)">T2 completó</div><div>${ok(s.t2_comp)}</div>
+      <div style="color:var(--text2)">T3 completó</div><div>${ok(s.t3_comp)}</div>
+      <div style="color:var(--text2)">Acepta Top-1</div><div class="font-medium">${s.top1||'—'}</div>
+    </div>`;
+}
+
+// ─── DOWNLOAD SESSION CSV ────────────────────────────
+function downloadSessionCSV() {
+  if (!lastSession) return;
+  const s = lastSession;
+  const H = ['ID','Fecha','Nombre','Edad','Genero','Dist_Vive','Dist_Trabajo','Transporte','Presupuesto','Freq_Apps','Exp_App','T1_Comp','T1_Tiempo','T2_Comp','T2_Tiempo','T3_Comp','T3_Tiempo','Top1','Q1','Q2','Q3','Q4','Q5','Q6','Q7','Q8','Q9','Q10','SUS_Score','Nivel','T1_Obs','T2_Obs','T3_Obs','P1','P2','P3','P4','P5_Usa','P5_Coment'];
+  const V = [s.id,s.fecha,s.nombre,s.edad,s.genero,s.dist_vive,s.dist_trabajo,s.transporte,s.presupuesto,s.freq_apps,s.exp_app,s.t1_comp,s.t1_tiempo,s.t2_comp,s.t2_tiempo,s.t3_comp,s.t3_tiempo,s.top1,s.sus_q1,s.sus_q2,s.sus_q3,s.sus_q4,s.sus_q5,s.sus_q6,s.sus_q7,s.sus_q8,s.sus_q9,s.sus_q10,s.sus_score,s.nivel,s.t1_obs,s.t2_obs,s.t3_obs,s.oa1,s.oa2,s.oa3,s.oa4,s.p5_usa,s.oa5];
+  const e = v => { if(v==null) return ''; const str=String(v); return (str.includes(',')||str.includes('"')||str.includes('\n')) ? '"'+str.replace(/"/g,'""')+'"' : str; };
+  triggerDownload('﻿'+H.join(',')+'\r\n'+V.map(e).join(','), 'SUS_MiCasita_sesion.csv', 'text/csv;charset=utf-8');
+}
+
+function triggerDownload(content, filename, type) {
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([content], {type})), download: filename });
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ─── NEW SESSION ─────────────────────────────────────
+function newSession() {
+  document.querySelectorAll('input:not([type=button]),textarea').forEach(el => el.value = '');
+  document.querySelectorAll('select').forEach(el => el.value = '');
+  Object.keys(chipValues).forEach(k => delete chipValues[k]);
+  document.querySelectorAll('.chip').forEach(b => { b.classList.remove('chip-navy','chip-green','chip-red'); b.classList.add('chip-gray'); });
+  document.querySelectorAll('.lb').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.sus-card').forEach(c => c.classList.remove('answered'));
+  lastSession = null;
+  goStep(1);
+}
+
+// ─── DASHBOARD ───────────────────────────────────────
+async function loadDashboard() {
+  const el = document.getElementById('dashboard-content');
+  el.innerHTML = `<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">${Array(6).fill('<div class="sk h-24"></div>').join('')}</div><div class="space-y-4">${Array(4).fill('<div class="sk h-40"></div>').join('')}</div>`;
+  try {
+    const [sR, sessR] = await Promise.all([fetch(`${API_URL}/api/stats`), fetch(`${API_URL}/api/sessions`)]);
+    if (!sR.ok || !sessR.ok) throw new Error();
+    const st = await sR.json(), sessions = await sessR.json();
+    if (parseInt(st.total) === 0) {
+      el.innerHTML = '<div class="gc p-10 text-center text-sm" style="color:var(--text2)">Sin sesiones registradas. Completa el formulario para ver resultados.</div>';
+      return;
+    }
+    el.innerHTML = renderDashboard(st, sessions);
+  } catch {
+    el.innerHTML = '<div class="p-4 rounded text-sm text-center" style="background:#fce8e6;color:var(--red)">No se pudo conectar al servidor.</div>';
+  }
+}
+
+const scoreColor = s => s >= 85 ? 'var(--grn)' : s >= 70 ? 'var(--blu)' : s >= 50 ? 'var(--amb)' : 'var(--red)';
+const scoreLevel = s => s >= 85 ? 'Excelente' : s >= 70 ? 'Bueno' : s >= 50 ? 'Regular' : 'Inaceptable';
+
+function renderDashboard(st, sessions) {
+  const total = parseInt(st.total);
+  const avg = parseFloat(st.sus_avg)||0;
+  const t1 = parseFloat(st.t1_rate)||0, t2 = parseFloat(st.t2_rate)||0, t3 = parseFloat(st.t3_rate)||0;
+  const top1si = parseFloat(st.top1_si)||0, top1no = parseFloat(st.top1_no)||0, top1tv = parseFloat(st.top1_talvez)||0;
+  const qa = st.q_avgs || {};
+
+  const kpi = (label, val, unit, meta) => {
+    const met = meta != null ? parseFloat(val) >= meta : null;
+    const clr = met === null ? 'var(--pr)' : met ? 'var(--grn)' : 'var(--red)';
+    return `<div class="gc p-4">
+      <div class="text-3xl font-light mb-1" style="color:${clr}">${val}${unit}</div>
+      <div class="text-xs" style="color:var(--text2)">${label}</div>
+      ${meta!=null ? `<div class="text-xs mt-1 font-medium" style="color:${clr}">${met?'✓':'✗'} meta ≥${meta}${unit}</div>` : ''}
+    </div>`;
+  };
+
+  const hBar = (lbl, val, pct, clr) => `
+    <div class="flex items-center gap-2 mb-2">
+      <div class="text-xs flex-shrink-0 w-6" style="color:var(--text2)">${lbl}</div>
+      <div class="flex-1 h-3.5 rounded-full overflow-hidden" style="background:#f1f3f4">
+        <div class="h-3.5 rounded-full" style="width:${pct}%;background:${clr}"></div>
+      </div>
+      <div class="text-xs font-medium w-8 text-right" style="color:${clr}">${val}</div>
+    </div>`;
+
+  const perPart = sessions.slice().reverse().map(s => {
+    const sc = parseFloat(s.sus_score)||0;
+    return `<div class="flex items-center gap-2 mb-1.5">
+      <div class="text-xs w-24 truncate flex-shrink-0" style="color:var(--text2)">${(s.nombre||'?').slice(0,15)}</div>
+      <div class="flex-1 h-3.5 rounded-full overflow-hidden" style="background:#f1f3f4">
+        <div class="h-3.5 rounded-full" style="width:${sc}%;background:${scoreColor(sc)}"></div>
+      </div>
+      <div class="text-xs font-bold w-8 text-right" style="color:${scoreColor(sc)}">${sc}</div>
+    </div>`;
+  }).join('');
+
+  const pI = Math.round(sessions.filter(s=>parseFloat(s.sus_score)<50).length/total*100);
+  const pR = Math.round(sessions.filter(s=>{const v=parseFloat(s.sus_score);return v>=50&&v<70;}).length/total*100);
+  const pB = Math.round(sessions.filter(s=>{const v=parseFloat(s.sus_score);return v>=70&&v<85;}).length/total*100);
+  const pE = Math.round(sessions.filter(s=>parseFloat(s.sus_score)>=85).length/total*100);
+  const seg = (p, clr) => p > 0 ? `<div class="flex items-center justify-center text-white text-xs font-bold" style="width:${p}%;background:${clr}">${p>7?p+'%':''}</div>` : '';
+
+  const byT = (st.by_transport||[]).map(r => {
+    const sc = parseFloat(r.avg_score)||0;
+    return hBar(`${r.transporte} (${r.n})`, sc, sc, scoreColor(sc));
+  }).join('') || '<p class="text-xs" style="color:var(--text2)">Sin datos de transporte</p>';
+
+  const conclusionText = `The usability evaluation recruited ${total} Lima workers (T1: ${t1}%, T2: ${t2}%, T3: ${t3}%). The System Usability Scale yielded a mean score of ${avg} (Bangor et al., 2008), classified as '${scoreLevel(avg)}'. ${top1si}% of participants accepted the Top-1 recommendation ${top1si>=60?'✓':'✗'}. SUS ≥70 Meta ${avg>=70?'cumplida ✓':'no cumplida ✗'}.`;
+
+  return `
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+    ${kpi('N Participantes', total, '', null)}
+    ${kpi('SUS Promedio', avg, '', 70)}
+    ${kpi('Completitud T1', t1, '%', 80)}
+    ${kpi('Completitud T2', t2, '%', 80)}
+    ${kpi('Completitud T3', t3, '%', 80)}
+    ${kpi('Acepta Top-1', top1si, '%', 60)}
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+    <div class="gc p-4">
+      <h3 class="text-xs font-medium uppercase tracking-wider mb-3" style="color:var(--text2)">SUS Score por participante</h3>
+      ${perPart}
+    </div>
+    <div class="gc p-4">
+      <h3 class="text-xs font-medium uppercase tracking-wider mb-3" style="color:var(--text2)">Completitud por tarea</h3>
+      ${hBar('T1', t1+'%', t1, t1>=80?'var(--grn)':'var(--red)')}
+      ${hBar('T2', t2+'%', t2, t2>=80?'var(--grn)':'var(--red)')}
+      ${hBar('T3', t3+'%', t3, t3>=80?'var(--grn)':'var(--red)')}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-3 gap-3 mb-4">
+    <div class="gc p-4 text-center">
+      <div class="text-2xl font-light mb-1" style="color:var(--grn)">${top1si}%</div>
+      <div class="text-xs font-medium" style="color:var(--grn)">Sí ${top1si>=60?'✓':''}</div>
+    </div>
+    <div class="gc p-4 text-center">
+      <div class="text-2xl font-light mb-1" style="color:var(--text2)">${top1tv}%</div>
+      <div class="text-xs font-medium" style="color:var(--text2)">Tal vez</div>
+    </div>
+    <div class="gc p-4 text-center">
+      <div class="text-2xl font-light mb-1" style="color:var(--red)">${top1no}%</div>
+      <div class="text-xs font-medium" style="color:var(--red)">No</div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+    <div class="gc p-4">
+      <h3 class="text-xs font-medium uppercase tracking-wider mb-3" style="color:var(--text2)">Promedio por pregunta SUS</h3>
+      ${[1,2,3,4,5,6,7,8,9,10].map((n,i) => {
+        const v = parseFloat(qa[`q${n}`])||0;
+        const pct = ((v-1)/4)*100;
+        const clr = SUS_QUESTIONS[i].dir === '↑' ? 'var(--pr)' : '#ea8600';
+        return hBar(`Q${n}`, v, pct, clr);
+      }).join('')}
+    </div>
+    <div class="gc p-4">
+      <h3 class="text-xs font-medium uppercase tracking-wider mb-3" style="color:var(--text2)">SUS por modo de transporte</h3>
+      ${byT}
+    </div>
+  </div>
+
+  <div class="gc overflow-hidden mb-4">
+    <h3 class="text-xs font-medium uppercase tracking-wider px-4 py-3 border-b" style="color:var(--text2);border-color:var(--bdr)">Distribución Bangor (2008)</h3>
+    <div class="p-4">
+      <div class="flex h-10 rounded-lg overflow-hidden mb-2">${seg(pI,'var(--red)')}${seg(pR,'var(--amb)')}${seg(pB,'var(--blu)')}${seg(pE,'var(--grn)')}</div>
+      <div class="flex gap-4 text-xs flex-wrap" style="color:var(--text2)">
+        <span><span style="color:var(--red)">■</span> Inaceptable ${pI}%</span>
+        <span><span style="color:var(--amb)">■</span> Regular ${pR}%</span>
+        <span><span style="color:var(--blu)">■</span> Bueno ${pB}%</span>
+        <span><span style="color:var(--grn)">■</span> Excelente ${pE}%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="gc overflow-hidden mb-4">
+    <div class="h-1.5" style="background:var(--pr)"></div>
+    <div class="p-5 flex gap-4">
+      <span class="text-2xl flex-shrink-0">📄</span>
+      <div class="flex-1">
+        <p class="text-sm leading-relaxed" id="conclusion-text" style="color:var(--text)">${conclusionText}</p>
+        <button onclick="copyConclusion()" id="btn-copy" class="bs mt-3 text-xs px-3 py-1.5">📋 Copiar texto</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function copyConclusion() {
+  navigator.clipboard.writeText(document.getElementById('conclusion-text').textContent).then(() => {
+    const btn = document.getElementById('btn-copy');
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = '📋 Copiar texto', 2000);
+  });
+}
+
+// ─── RECORDS ─────────────────────────────────────────
+async function loadRecords() {
+  const el = document.getElementById('records-content');
+  el.innerHTML = '<div class="sk h-40"></div>';
+  try {
+    const res = await fetch(`${API_URL}/api/sessions`);
+    if (!res.ok) throw new Error();
+    const sessions = await res.json();
+    document.getElementById('records-badge').textContent = `${sessions.length} sesiones`;
+    el.innerHTML = renderTable(sessions);
+  } catch {
+    el.innerHTML = '<div class="p-4 rounded text-sm text-center" style="background:#fce8e6;color:var(--red)">No se pudo conectar al servidor.</div>';
+  }
+}
+
+function renderTable(sessions) {
+  if (!sessions.length) return '<div class="gc p-10 text-center text-sm" style="color:var(--text2)">Sin registros aún.</div>';
+  const badge = n => {
+    const m = {Excelente:'var(--grn)',Bueno:'var(--blu)',Regular:'var(--amb)',Inaceptable:'var(--red)'};
+    return `<span class="px-2 py-0.5 rounded-full text-xs text-white font-medium" style="background:${m[n]||'var(--text2)'}">${n||'—'}</span>`;
+  };
+  const fmt = d => { if(!d) return '—'; const dt=new Date(d),p=n=>String(n).padStart(2,'0'); return `${p(dt.getDate())}/${p(dt.getMonth()+1)}/${dt.getFullYear()} ${p(dt.getHours())}:${p(dt.getMinutes())}`; };
+  const ok = v => v===1 ? `<span style="color:var(--grn);font-weight:700">✓</span>` : `<span style="color:var(--red);font-weight:700">✗</span>`;
+  return `<div class="gc overflow-x-auto">
+    <table class="w-full" style="min-width:700px">
+      <thead>
+        <tr style="border-bottom:2px solid var(--pr)">
+          ${['#','Nombre','Fecha','Dist. Trabajo','Transporte','T1','T2','T3','Top-1','SUS','Nivel',''].map(h=>`<th class="px-3 py-3 text-xs font-medium text-left" style="color:var(--text2)">${h}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${sessions.map(s => `
+          <tr style="border-bottom:1px solid #f1f3f4" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background=''">
+            <td class="px-3 py-2.5 text-xs" style="color:var(--text2)">#${s.id}</td>
+            <td class="px-3 py-2.5 text-sm font-medium">${s.nombre||'—'}</td>
+            <td class="px-3 py-2.5 text-xs" style="color:var(--text2)">${fmt(s.fecha)}</td>
+            <td class="px-3 py-2.5 text-xs" style="color:var(--text2)">${s.dist_trabajo||'—'}</td>
+            <td class="px-3 py-2.5 text-xs" style="color:var(--text2)">${s.transporte||'—'}</td>
+            <td class="px-3 py-2.5 text-center">${ok(s.t1_comp)}</td>
+            <td class="px-3 py-2.5 text-center">${ok(s.t2_comp)}</td>
+            <td class="px-3 py-2.5 text-center">${ok(s.t3_comp)}</td>
+            <td class="px-3 py-2.5 text-xs">${s.top1||'—'}</td>
+            <td class="px-3 py-2.5 text-sm font-bold" style="color:${scoreColor(parseFloat(s.sus_score)||0)}">${s.sus_score||'—'}</td>
+            <td class="px-3 py-2.5">${badge(s.nivel)}</td>
+            <td class="px-3 py-2.5 text-center">
+              <button onclick="deleteSession(${s.id},'${(s.nombre||'').replace(/'/g,"\\'")}',this)"
+                class="text-lg" style="color:#bdbdbd;transition:color .15s"
+                onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='#bdbdbd'">🗑</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+async function deleteSession(id, nombre, btn) {
+  if (!confirm(`¿Eliminar sesión de ${nombre}?`)) return;
+  try {
+    btn.disabled = true; btn.textContent = '…';
+    const res = await fetch(`${API_URL}/api/sessions/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error();
+    loadRecords();
+  } catch {
+    btn.disabled = false; btn.textContent = '🗑';
+    alert('Error al eliminar. Intenta de nuevo.');
+  }
+}
+
+async function exportAllCSV() {
+  try {
+    const res = await fetch(`${API_URL}/api/sessions/export/csv`);
+    if (!res.ok) throw new Error();
+    const url = URL.createObjectURL(await res.blob());
+    Object.assign(document.createElement('a'), { href: url, download: 'SUS_MiCasita.csv' }).click();
+    URL.revokeObjectURL(url);
+  } catch {
+    alert('Error al exportar. Verifica la conexión.');
+  }
+}
+
+// expose SUS_QUESTIONS to renderDashboard closure
+</script>
+</body>
+</html>
